@@ -64,8 +64,8 @@ class UserCreateService implements ServiceInterface
             $event = $this->make(UserEvent::class, [$model]);
             $model->trigger(UserEvent::EVENT_BEFORE_CREATE, $event);
 
-            if (!$model->save()) {
-                $transaction->rollBack();
+            if (!$model->save()) {                
+                $transaction->rollBack();                
                 return false;
             }
 

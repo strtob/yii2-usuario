@@ -29,13 +29,16 @@ use yii\helpers\Url;
  * @property string $data        Account properties returned by social network (json encoded)
  * @property string $decodedData Json-decoded properties
  * @property string $code
+ * @property string $access_token
  * @property string $email
  * @property string $username
+ * @property stirng $first_name
+ * @property stirng $last_name
  * @property int    $created_at
  * @property User   $user        User that this account is connected for
  */
-class SocialNetworkAccount extends ActiveRecord
-{
+class SocialNetworkAccount extends ActiveRecord {
+
     use ModuleAwareTrait;
     use ContainerAwareTrait;
 
@@ -47,24 +50,21 @@ class SocialNetworkAccount extends ActiveRecord
     /**
      * {@inheritdoc}
      */
-    public static function tableName()
-    {
+    public static function tableName() {
         return '{{%social_account}}';
     }
 
     /**
      * @return bool Whether this social account is connected to user
      */
-    public function getIsConnected()
-    {
+    public function getIsConnected() {
         return null !== $this->user_id;
     }
 
     /**
      * @return array json decoded properties
      */
-    public function getDecodedData()
-    {
+    public function getDecodedData() {
         if ($this->data !== null && $this->decodedData === null) {
             $this->decodedData = json_decode($this->data);
         }
@@ -77,8 +77,7 @@ class SocialNetworkAccount extends ActiveRecord
      * @throws InvalidParamException
      * @return string                the connection url
      */
-    public function getConnectionUrl()
-    {
+    public function getConnectionUrl() {
         $code = Yii::$app->security->generateRandomString();
         $this->updateAttributes(['code' => md5($code)]);
 
@@ -92,31 +91,30 @@ class SocialNetworkAccount extends ActiveRecord
      *
      * @return int
      */
-    public function connect(User $user)
-    {
+    public function connect(User $user) {
         return $this->updateAttributes(
-            [
-                'username' => null,
-                'email' => null,
-                'code' => null,
-                'user_id' => $user->id,
-            ]
+                        [
+                            'username' => null,
+                            'email' => null,
+                            'code' => null,
+//                            'access_token' => null,
+                            'user_id' => $user->id,
+                        ]
         );
     }
 
     /**
      * @return \yii\db\ActiveQuery
      */
-    public function getUser()
-    {
+    public function getUser() {
         return $this->hasOne($this->getClassMap()->get(User::class), ['id' => 'user_id']);
     }
 
     /**
      * @return SocialNetworkAccountQuery
      */
-    public static function find()
-    {
+    public static function find() {
         return new SocialNetworkAccountQuery(static::class);
     }
+
 }

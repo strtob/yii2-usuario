@@ -23,8 +23,8 @@ use Yii;
 use yii\authclient\AuthAction;
 use yii\helpers\Url;
 
-class SocialNetworkAuthenticateService implements ServiceInterface
-{
+class SocialNetworkAuthenticateService implements ServiceInterface {
+
     protected $controller;
     protected $authAction;
     protected $client;
@@ -32,11 +32,11 @@ class SocialNetworkAuthenticateService implements ServiceInterface
     protected $userQuery;
 
     public function __construct(
-        SecurityController $controller,
-        AuthAction $authAction,
-        AuthClientInterface $client,
-        SocialNetworkAccountQuery $socialNetworkAccountQuery,
-        UserQuery $userQuery
+            SecurityController $controller,
+            AuthAction $authAction,
+            AuthClientInterface $client,
+            SocialNetworkAccountQuery $socialNetworkAccountQuery,
+            UserQuery $userQuery
     ) {
         $this->controller = $controller;
         $this->authAction = $authAction;
@@ -45,9 +45,9 @@ class SocialNetworkAuthenticateService implements ServiceInterface
         $this->userQuery = $userQuery;
     }
 
-    public function run()
-    {
+    public function run() {
         $account = $this->socialNetworkAccountQuery->whereClient($this->client)->one();
+
         if (!$this->controller->module->enableRegistration && ($account === null || $account->user === null)) {
             Yii::$app->session->setFlash('danger', Yii::t('usuario', 'Registration on this website is disabled'));
             $this->authAction->setSuccessUrl(Url::to(['/user/security/login']));
@@ -87,21 +87,23 @@ class SocialNetworkAuthenticateService implements ServiceInterface
         return $result;
     }
 
-    protected function createAccount()
-    {
+    protected function createAccount() {
         $data = $this->client->getUserAttributes();
-
+               
         /** @var SocialNetworkAccount $account */
         $account = $this->controller->make(
-            SocialNetworkAccount::class,
-            [],
-            [
-                'provider' => $this->client->getId(),
-                'client_id' => $data['id'],
-                'data' => json_encode($data),
-                'username' => $this->client->getUserName(),
-                'email' => $this->client->getEmail(),
-            ]
+                SocialNetworkAccount::class,
+                [],
+                [
+                    'provider' => $this->client->getId(),
+                    'client_id' => $data['id'],
+                    'first_name' => !isset($data['first_name']) ?: $data['first_name'],
+                    'last_name' => !isset($data['last_name']) ?: $data['last_name'],
+                    'access_token' => !isset($this->client->accessToken->token) ?: $this->client->accessToken->token,
+                    'data' => json_encode($data),
+                    'username' => $this->client->getUserName(),
+                    'email' => $this->client->getEmail(),
+                ]
         );
 
         if (($user = $this->getUser($account)) instanceof User) {
@@ -112,8 +114,8 @@ class SocialNetworkAuthenticateService implements ServiceInterface
         return $account;
     }
 
-    protected function getUser(SocialNetworkAccount $account)
-    {
+    protected function getUser(SocialNetworkAccount $account) {
         return $this->userQuery->whereEmail($account->email)->one();
     }
+
 }

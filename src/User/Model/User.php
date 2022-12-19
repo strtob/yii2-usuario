@@ -39,6 +39,8 @@ use yii\web\IdentityInterface;
  * @property int                    $id
  * @property string                 $username
  * @property string                 $email
+ * @property string                 $first_name
+ * @property string                 $last_name
  * @property string                 $unconfirmed_email
  * @property string                 $password_hash
  * @property string                 $auth_key
@@ -61,8 +63,8 @@ use yii\web\IdentityInterface;
  * @property SocialNetworkAccount[] $socialNetworkAccounts
  * @property Profile                $profile
  */
-class User extends ActiveRecord implements IdentityInterface
-{
+class User extends ActiveRecord implements IdentityInterface {
+
     use ModuleAwareTrait;
     use ContainerAwareTrait;
 
@@ -74,6 +76,7 @@ class User extends ActiveRecord implements IdentityInterface
      * @var string Plain password. Used for model validation
      */
     public $password;
+
     /**
      * @var array connected account list
      */
@@ -86,16 +89,14 @@ class User extends ActiveRecord implements IdentityInterface
      * @throws InvalidConfigException
      * @throws Exception
      */
-    public static function tableName()
-    {
+    public static function tableName() {
         return '{{%user}}';
     }
 
     /**
      * {@inheritdoc}
      */
-    public function fields()
-    {
+    public function fields() {
         $fields = parent::fields();
         unset($fields['auth_key'], $fields['password_hash']);
         return $fields;
@@ -104,16 +105,14 @@ class User extends ActiveRecord implements IdentityInterface
     /**
      * {@inheritdoc}
      */
-    public static function findIdentity($id)
-    {
+    public static function findIdentity($id) {
         return static::findOne($id);
     }
 
     /**
      * @return UserQuery
      */
-    public static function find()
-    {
+    public static function find() {
         return new UserQuery(static::class);
     }
 
@@ -122,16 +121,14 @@ class User extends ActiveRecord implements IdentityInterface
      *
      * @throws NotSupportedException
      */
-    public static function findIdentityByAccessToken($token, $type = null)
-    {
+    public static function findIdentityByAccessToken($token, $type = null) {
         throw new NotSupportedException('Method "' . __CLASS__ . '::' . __METHOD__ . '" is not implemented.');
     }
 
     /**
      * {@inheritdoc}
      */
-    public function beforeSave($insert)
-    {
+    public function beforeSave($insert) {
         /** @var SecurityHelper $security */
         $security = $this->make(SecurityHelper::class);
         if ($insert) {
@@ -143,8 +140,8 @@ class User extends ActiveRecord implements IdentityInterface
 
         if (!empty($this->password)) {
             $this->setAttribute(
-                'password_hash',
-                $security->generatePasswordHash($this->password, $this->getModule()->blowfishCost)
+                    'password_hash',
+                    $security->generatePasswordHash($this->password, $this->getModule()->blowfishCost)
             );
             $this->password_changed_at = time();
         }
@@ -157,8 +154,7 @@ class User extends ActiveRecord implements IdentityInterface
      *
      * @throws InvalidConfigException
      */
-    public function afterSave($insert, $changedAttributes)
-    {
+    public function afterSave($insert, $changedAttributes) {
         parent::afterSave($insert, $changedAttributes);
 
         if ($insert && $this->profile === null) {
@@ -170,8 +166,7 @@ class User extends ActiveRecord implements IdentityInterface
     /**
      * {@inheritdoc}
      */
-    public function behaviors()
-    {
+    public function behaviors() {
         $behaviors = [
             TimestampBehavior::class,
         ];
@@ -190,13 +185,15 @@ class User extends ActiveRecord implements IdentityInterface
     /**
      * {@inheritdoc}
      */
-    public function attributeLabels()
-    {
+    public function attributeLabels() {
         return [
             'username' => Yii::t('usuario', 'Username'),
             'email' => Yii::t('usuario', 'Email'),
+            'first_name' => Yii::t('usuario', 'First Name'),
+            'last_name' => Yii::t('usuario', 'Last Name'),
+            'tbl_title_user_id' => Yii::t('usuario', 'Salutation'),
             'registration_ip' => Yii::t('usuario', 'Registration IP'),
-            'unconfirmed_email' => Yii::t('usuario', 'New email'),
+            'unconfirmed_email' => Yii::t('usuario', 'New Email'),
             'password' => Yii::t('usuario', 'Password'),
             'created_at' => Yii::t('usuario', 'Registration time'),
             'confirmed_at' => Yii::t('usuario', 'Confirmation time'),
@@ -210,25 +207,23 @@ class User extends ActiveRecord implements IdentityInterface
     /**
      * {@inheritdoc}
      */
-    public function scenarios()
-    {
+    public function scenarios() {
         return ArrayHelper::merge(
-            parent::scenarios(),
-            [
-                'register' => ['username', 'email', 'password'],
-                'connect' => ['username', 'email'],
-                'create' => ['username', 'email', 'password'],
-                'update' => ['username', 'email', 'password'],
-                'settings' => ['username', 'email', 'password'],
-            ]
+                        parent::scenarios(),
+                        [
+                            'register' => ['username', 'email', 'first_name', 'last_name', 'password'],
+                            'connect' => ['username', 'email'],
+                            'create' => ['username', 'email', 'first_name', 'last_name', 'password'],
+                            'update' => ['username', 'email', 'first_name', 'last_name', 'password'],
+                            'settings' => ['username', 'email', 'first_name', 'last_name', 'password'],
+                        ]
         );
     }
 
     /**
      * {@inheritdoc}
      */
-    public function rules()
-    {
+    public function rules() {
         return [
             // username rules
             'usernameRequired' => ['username', 'required', 'on' => ['register', 'create', 'connect', 'update']],
@@ -240,7 +235,6 @@ class User extends ActiveRecord implements IdentityInterface
                 'unique',
                 'message' => Yii::t('usuario', 'This username has already been taken'),
             ],
-
             // email rules
             'emailRequired' => ['email', 'required', 'on' => ['register', 'connect', 'create', 'update']],
             'emailPattern' => ['email', 'email'],
@@ -251,12 +245,12 @@ class User extends ActiveRecord implements IdentityInterface
                 'message' => Yii::t('usuario', 'This email address has already been taken'),
             ],
             'emailTrim' => ['email', 'trim'],
-
+            'firstNameRequired' => ['first_name', 'required', 'on' => ['register', 'create', 'connect', 'update']],
+            'lastNameRequired' => ['last_name', 'required', 'on' => ['register', 'create', 'connect', 'update']],
             // password rules
             'passwordTrim' => ['password', 'trim'],
             'passwordRequired' => ['password', 'required', 'on' => ['register']],
             'passwordLength' => ['password', 'string', 'min' => 6, 'max' => 72, 'on' => ['register', 'create']],
-
             // two factor auth rules
             'twoFactorSecretTrim' => ['auth_tf_key', 'trim'],
             'twoFactorSecretLength' => ['auth_tf_key', 'string', 'max' => 16],
@@ -269,32 +263,28 @@ class User extends ActiveRecord implements IdentityInterface
     /**
      * {@inheritdoc}
      */
-    public function validateAuthKey($authKey)
-    {
+    public function validateAuthKey($authKey) {
         return $this->getAttribute('auth_key') === $authKey;
     }
 
     /**
      * {@inheritdoc}
      */
-    public function getId()
-    {
+    public function getId() {
         return $this->getAttribute('id');
     }
 
     /**
      * {@inheritdoc}
      */
-    public function getAuthKey()
-    {
+    public function getAuthKey() {
         return $this->getAttribute('auth_key');
     }
 
     /**
      * @return bool whether is blocked or not
      */
-    public function getIsBlocked()
-    {
+    public function getIsBlocked() {
         return $this->blocked_at !== null;
     }
 
@@ -302,8 +292,7 @@ class User extends ActiveRecord implements IdentityInterface
      * @throws InvalidConfigException
      * @return bool                   whether the user is an admin or not
      */
-    public function getIsAdmin()
-    {
+    public function getIsAdmin() {
         return $this->getAuth()->isAdmin($this->username);
     }
 
@@ -311,8 +300,7 @@ class User extends ActiveRecord implements IdentityInterface
      * Returns whether user account has been confirmed or not.
      * @return bool whether user account has been confirmed or not
      */
-    public function getIsConfirmed()
-    {
+    public function getIsConfirmed() {
         return $this->confirmed_at !== null;
     }
 
@@ -323,8 +311,7 @@ class User extends ActiveRecord implements IdentityInterface
      *
      * @return bool
      */
-    public function hasRole($role)
-    {
+    public function hasRole($role) {
         return $this->getAuth()->hasRole($this->id, $role);
     }
 
@@ -333,8 +320,7 @@ class User extends ActiveRecord implements IdentityInterface
      * @throws InvalidParamException
      * @return \yii\db\ActiveQuery
      */
-    public function getProfile()
-    {
+    public function getProfile() {
         return $this->hasOne($this->getClassMap()->get(Profile::class), ['user_id' => 'id']);
     }
 
@@ -343,16 +329,15 @@ class User extends ActiveRecord implements IdentityInterface
      * @return SocialNetworkAccount[] social connected accounts [ 'providerName' => socialAccountModel ]
      *
      */
-    public function getSocialNetworkAccounts()
-    {
+    public function getSocialNetworkAccounts() {
         if (null === $this->connectedAccounts) {
             /** @var SocialNetworkAccount[] $accounts */
             $accounts = $this->hasMany(
-                $this->getClassMap()
-                    ->get(SocialNetworkAccount::class),
-                ['user_id' => 'id']
-            )
-                ->all();
+                            $this->getClassMap()
+                            ->get(SocialNetworkAccount::class),
+                            ['user_id' => 'id']
+                    )
+                    ->all();
 
             foreach ($accounts as $account) {
                 $this->connectedAccounts[$account->provider] = $account;
@@ -366,8 +351,7 @@ class User extends ActiveRecord implements IdentityInterface
      * Returns password age in days
      * @return integer
      */
-    public function getPassword_age()
-    {
+    public function getPassword_age() {
         if (is_null($this->password_changed_at)) {
             return $this->getModule()->maxPasswordAge;
         }
@@ -380,8 +364,7 @@ class User extends ActiveRecord implements IdentityInterface
      * Returns authentication two factor type enabled for the user
      * @return integer
      */
-    public function getAuthTfType()
-    {
+    public function getAuthTfType() {
         return $this->getAttribute('auth_tf_type');
     }
 
@@ -389,8 +372,8 @@ class User extends ActiveRecord implements IdentityInterface
      * Returns the mobile phone number used for sms authentication two factor for the user
      * @return string
      */
-    public function getAuthTfMobilePhone()
-    {
+    public function getAuthTfMobilePhone() {
         return $this->getAttribute('auth_tf_mobile_phone');
     }
+
 }

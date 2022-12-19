@@ -25,7 +25,13 @@ $this->params['breadcrumbs'][] = $this->title;
 
 /** @var \Da\User\Module $module */
 $module = Yii::$app->getModule('user');
+
+$token = Yii::$app->user->identity->socialNetworkAccounts['LinkedIn']->access_token;
+
+$imgUrl = (new \Da\User\Helper\LinkedInHelper($token))->pictureUrl(Yii::$app->user->identity->socialNetworkAccounts['LinkedIn']->client_id);
+
 ?>
+<img src="<?= $imgUrl ?>">
 <div class="clearfix"></div>
 
 <?= $this->render('/shared/_alert', ['module' => Yii::$app->getModule('user')]) ?>

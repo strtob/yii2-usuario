@@ -21,8 +21,8 @@ use Da\User\Query\SocialNetworkAccountQuery;
 use Da\User\Traits\ContainerAwareTrait;
 use Yii;
 
-class SocialNetworkAccountConnectService implements ServiceInterface
-{
+class SocialNetworkAccountConnectService implements ServiceInterface {
+
     use ContainerAwareTrait;
 
     protected $controller;
@@ -37,17 +37,16 @@ class SocialNetworkAccountConnectService implements ServiceInterface
      * @param SocialNetworkAccountQuery $socialNetworkAccountQuery
      */
     public function __construct(
-        SecurityController $controller,
-        AuthClientInterface $client,
-        SocialNetworkAccountQuery $socialNetworkAccountQuery
+            SecurityController $controller,
+            AuthClientInterface $client,
+            SocialNetworkAccountQuery $socialNetworkAccountQuery
     ) {
         $this->controller = $controller;
         $this->client = $client;
         $this->socialNetworkAccountQuery = $socialNetworkAccountQuery;
     }
 
-    public function run()
-    {
+    public function run() {
         $account = $this->getSocialNetworkAccount();
 
         $event = $this->make(SocialNetworkAuthEvent::class, [$account, $this->client]);
@@ -64,28 +63,29 @@ class SocialNetworkAccountConnectService implements ServiceInterface
             return true;
         }
         Yii::$app->session->setFlash(
-            'danger',
-            Yii::t('usuario', 'This account has already been connected to another user')
+                'danger',
+                Yii::t('usuario', 'This account has already been connected to another user')
         );
 
         return false;
     }
 
-    protected function getSocialNetworkAccount()
-    {
+    protected function getSocialNetworkAccount() {
         $account = $this->socialNetworkAccountQuery->whereClient($this->client)->one();
 
         if (null === $account) {
             $data = $this->client->getUserAttributes();
-
+                                  
             $account = $this->make(
-                SocialNetworkAccount::class,
-                [],
-                [
-                    'provider' => $this->client->getId(),
-                    'client_id' => $data['id'],
-                    'data' => json_encode($data),
-                ]
+                    SocialNetworkAccount::class,
+                    [],
+                    [
+                        'provider' => $this->client->getId(),
+                        'client_id' => $data['id'],
+                        'data' => json_encode($data),
+                        'first_name' => $data['first_name'],
+                        'second_name' => $data['second_name'],
+                    ]
             );
 
             if ($account->save(false)) {
@@ -95,4 +95,5 @@ class SocialNetworkAccountConnectService implements ServiceInterface
 
         return false;
     }
+
 }

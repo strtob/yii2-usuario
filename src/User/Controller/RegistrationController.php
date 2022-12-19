@@ -35,8 +35,8 @@ use yii\filters\AccessControl;
 use yii\web\Controller;
 use yii\web\NotFoundHttpException;
 
-class RegistrationController extends Controller
-{
+class RegistrationController extends Controller {
+
     use ContainerAwareTrait;
     use ModuleAwareTrait;
 
@@ -53,11 +53,11 @@ class RegistrationController extends Controller
      * @param array                     $config
      */
     public function __construct(
-        $id,
-        Module $module,
-        UserQuery $userQuery,
-        SocialNetworkAccountQuery $socialNetworkAccountQuery,
-        array $config = []
+            $id,
+            Module $module,
+            UserQuery $userQuery,
+            SocialNetworkAccountQuery $socialNetworkAccountQuery,
+            array $config = []
     ) {
         $this->userQuery = $userQuery;
         $this->socialNetworkAccountQuery = $socialNetworkAccountQuery;
@@ -67,8 +67,7 @@ class RegistrationController extends Controller
     /**
      * {@inheritdoc}
      */
-    public function behaviors()
-    {
+    public function behaviors() {
         return [
             'access' => [
                 'class' => AccessControl::class,
@@ -91,8 +90,7 @@ class RegistrationController extends Controller
     /**
      * {@inheritdoc}
      */
-    public function actionRegister()
-    {
+    public function actionRegister() {
         if (!$this->module->enableRegistration) {
             throw new NotFoundHttpException();
         }
@@ -107,7 +105,6 @@ class RegistrationController extends Controller
             $this->trigger(FormEvent::EVENT_BEFORE_REGISTER, $event);
 
             /** @var User $user */
-
             // Create a temporay $user so we can get the attributes, then get
             // the intersection between the $form fields  and the $user fields.
             $user = $this->make(User::class, []);
@@ -124,22 +121,22 @@ class RegistrationController extends Controller
             if ($this->make(UserRegisterService::class, [$user, $mailService])->run()) {
                 if ($this->module->enableEmailConfirmation) {
                     Yii::$app->session->setFlash(
-                        'info',
-                        Yii::t(
-                            'usuario',
-                            'Your account has been created and a message with further instructions has been sent to your email'
-                        )
+                            'info',
+                            Yii::t(
+                                    'usuario',
+                                    'Your account has been created and a message with further instructions has been sent to your email'
+                            )
                     );
                 } else {
                     Yii::$app->session->setFlash('info', Yii::t('usuario', 'Your account has been created'));
                 }
                 $this->trigger(FormEvent::EVENT_AFTER_REGISTER, $event);
                 return $this->render(
-                    '/shared/message',
-                    [
-                        'title' => Yii::t('usuario', 'Your account has been created'),
-                        'module' => $this->module,
-                    ]
+                                '/shared/message',
+                                [
+                                    'title' => Yii::t('usuario', 'Your account has been created'),
+                                    'module' => $this->module,
+                                ]
                 );
             }
             Yii::$app->session->setFlash('danger', Yii::t('usuario', 'User could not be registered.'));
@@ -150,19 +147,26 @@ class RegistrationController extends Controller
     /**
      * {@inheritdoc}
      */
-    public function actionConnect($code)
-    {
+    public function actionConnect($code) {
         /** @var SocialNetworkAccount $account */
         $account = $this->socialNetworkAccountQuery->whereCode($code)->one();
         if ($account === null || $account->getIsConnected()) {
             throw new NotFoundHttpException();
         }
 
+        $accountData = json_decode($account->data);
+
         /** @var User $user */
         $user = $this->make(
-            User::class,
-            [],
-            ['scenario' => 'connect', 'username' => $account->username, 'email' => $account->email]
+                User::class,
+                [],
+                [
+                    'scenario' => 'connect',
+                    'username' => $account->username,
+                    'email' => $account->email,
+                    'first_name' => $accountData->first_name,
+                    'last_name' => $accountData->last_name,
+                ]
         );
         $event = $this->make(SocialNetworkConnectEvent::class, [$user, $account]);
 
@@ -180,22 +184,21 @@ class RegistrationController extends Controller
 
                 return $this->goBack();
             }
-        }
+        } 
 
         return $this->render(
-            'connect',
-            [
-                'model' => $user,
-                'account' => $account,
-            ]
+                        'connect',
+                        [
+                            'model' => $user,
+                            'account' => $account,
+                        ]
         );
     }
 
     /**
      * {@inheritdoc}
      */
-    public function actionConfirm($id, $code)
-    {
+    public function actionConfirm($id, $code) {
         /** @var User $user */
         $user = $this->userQuery->whereId($id)->one();
 
@@ -216,25 +219,24 @@ class RegistrationController extends Controller
             $this->trigger(UserEvent::EVENT_AFTER_CONFIRMATION, $event);
         } else {
             Yii::$app->session->setFlash(
-                'danger',
-                Yii::t('usuario', 'The confirmation link is invalid or expired. Please try requesting a new one.')
+                    'danger',
+                    Yii::t('usuario', 'The confirmation link is invalid or expired. Please try requesting a new one.')
             );
         }
 
         return $this->render(
-            '/shared/message',
-            [
-                'title' => Yii::t('usuario', 'Account confirmation'),
-                'module' => $this->module,
-            ]
+                        '/shared/message',
+                        [
+                            'title' => Yii::t('usuario', 'Account confirmation'),
+                            'module' => $this->module,
+                        ]
         );
     }
 
     /**
      * {@inheritdoc}
      */
-    public function actionResend()
-    {
+    public function actionResend() {
         if ($this->module->enableEmailConfirmation === false) {
             throw new NotFoundHttpException();
         }
@@ -254,40 +256,39 @@ class RegistrationController extends Controller
                 if ($success = $this->make(ResendConfirmationService::class, [$user, $mailService])->run()) {
                     $this->trigger(FormEvent::EVENT_AFTER_RESEND, $event);
                     Yii::$app->session->setFlash(
-                        'info',
-                        Yii::t(
-                            'usuario',
-                            'A message has been sent to your email address. It contains a confirmation link that you must click to complete registration.'
-                        )
+                            'info',
+                            Yii::t(
+                                    'usuario',
+                                    'A message has been sent to your email address. It contains a confirmation link that you must click to complete registration.'
+                            )
                     );
                 }
             }
             if ($user === null || $success === false) {
                 Yii::$app->session->setFlash(
-                    'danger',
-                    Yii::t(
-                        'usuario',
-                        'We couldn\'t re-send the mail to confirm your address. Please, verify is the correct email or if it has been confirmed already.'
-                    )
+                        'danger',
+                        Yii::t(
+                                'usuario',
+                                'We couldn\'t re-send the mail to confirm your address. Please, verify is the correct email or if it has been confirmed already.'
+                        )
                 );
             }
 
             return $this->render(
-                '/shared/message',
-                [
-                    'title' => $success
-                        ? Yii::t('usuario', 'A new confirmation link has been sent')
-                        : Yii::t('usuario', 'Unable to send confirmation link'),
-                    'module' => $this->module,
-                ]
+                            '/shared/message',
+                            [
+                                'title' => $success ? Yii::t('usuario', 'A new confirmation link has been sent') : Yii::t('usuario', 'Unable to send confirmation link'),
+                                'module' => $this->module,
+                            ]
             );
         }
 
         return $this->render(
-            'resend',
-            [
-                'model' => $form,
-            ]
+                        'resend',
+                        [
+                            'model' => $form,
+                        ]
         );
     }
+
 }
